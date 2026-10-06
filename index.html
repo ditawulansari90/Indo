@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LKPD Interaktif Bahasa Indonesia</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+    .container { max-width: 600px; background: white; margin: 0 auto; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h2, h3 { text-align: center; color: #2c3e50; }
+    .form-group { margin-bottom: 20px; }
+    label { font-weight: bold; display: block; margin-bottom: 8px; }
+    input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    .soal-card { background: #f8f9fa; border-left: 4px solid #007bff; padding: 12px 15px; margin-bottom: 15px; border-radius: 4px; }
+    button { width: 100%; background: #28a745; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #218838; }
+    button:disabled { background: #6c757d; cursor: not-allowed; }
+    #status { margin-top: 15px; text-align: center; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>LKPD BAHASA INDONESIA</h2>
+  <p style="text-align: center; color: #666;">Isi jawaban dan unggah foto lembar jawaban kertasmu di bawah ini.</p>
+  <hr><br>
+
+  <form id="lkpdForm">
+    <!-- Identitas Siswa -->
+    <div class="form-group">
+      <label for="namaSiswa">Nama Lengkap Siswa:</label>
+      <input type="text" id="namaSiswa" placeholder="Masukkan nama lengkap..." required>
+    </div>
+
+    <div class="form-group">
+      <label for="kelas">Kelas:</label>
+      <input type="text" id="kelas" placeholder="Contoh: 5A" required>
+    </div>
+
+    <h3>-- SOAL LEMBAR KERJA --</h3>
+
+    <!-- Soal 1 -->
+    <div class="soal-card">
+      <label>1. Gagasan utama dari sebuah paragraf disebut...</label>
+      <select id="q1" required>
+        <option value="">-- Pilih Jawaban --</option>
+        <option value="A">A. Kalimat penjelas</option>
+        <option value="B">B. Ide pokok</option>
+        <option value="C">C. Judul</option>
+      </select>
+    </div>
+
+    <!-- Soal 2 -->
+    <div class="soal-card">
+      <label>2. Penulisan kata baku yang tepat di bawah ini adalah...</label>
+      <select id="q2" required>
+        <option value="">-- Pilih Jawaban --</option>
+        <option value="A">A. Apotik</option>
+        <option value="B">B. Apotek</option>
+        <option value="C">C. Apoteq</option>
+      </select>
+    </div>
+
+    <!-- Soal 3 -->
+    <div class="soal-card">
+      <label>3. Tuliskan sinonim dari kata "HEMAT" (Huruf Kapital):</label>
+      <input type="text" id="q3" placeholder="Contoh: IRIT" required>
+    </div>
+
+    <!-- Upload Foto -->
+    <div class="form-group" style="margin-top: 25px;">
+      <label for="fotoLKPD">Upload Foto Lembar Jawaban Kertas (Galeri/Kamera):</label>
+      <input type="file" id="fotoLKPD" accept="image/*" required>
+    </div>
+
+    <button type="submit" id="btnSubmit">KIRIM JAWABAN</button>
+  </form>
+
+  <div id="status"></div>
+</div>
+
+<script>
+  // KUNCI JAWABAN & BOBOT
+  const kunciJawaban = {
+    q1: "B",
+    q2: "B",
+    q3: "IRIT"
+  };
+
+  // URL EXEC APPS SCRIPT IBU SUDAH TERPASANG DI SINI
+  const scriptURL = "https://script.google.com/macros/s/AKfycbxO4ahYqxfR5mX9ZMUrPpyZmjEYaW3AEI7MRkScvh38mJ2hHolL2bUSZ5HyNVYL2Q3b/exec";
+
+  document.getElementById('lkpdForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const btn = document.getElementById('btnSubmit');
+    const statusDiv = document.getElementById('status');
+    btn.disabled = true;
+    statusDiv.style.color = "#333";
+    statusDiv.innerText = "Mengkoreksi jawaban & mengunggah foto...";
+
+    // 1. Hitung Nilai Otomatis
+    let skor = 0;
+    const totalSoal = 3;
+
+    if (document.getElementById('q1').value === kunciJawaban.q1) skor += 1;
+    if (document.getElementById('q2').value === kunciJawaban.q2) skor += 1;
+    
+    // Soal Isian (diubah ke huruf kapital dan hapus spasi)
+    const ans3 = document.getElementById('q3').value.trim().toUpperCase();
+    if (ans3 === kunciJawaban.q3) skor += 1;
+
+    const nilaiAkhir = Math.round((skor / totalSoal) * 100);
+
+    // 2. Baca File Foto ke Base64
+    const fileInput = document.getElementById('fotoLKPD').files[0];
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      const base64Data = reader.result.split(',')[1];
+      
+      const payload = {
+        namaSiswa: document.getElementById('namaSiswa').value,
+        kelas: document.getElementById('kelas').value,
+        namaTugas: "LKPD Bahasa Indonesia",
+        nilai: nilaiAkhir,
+        fileBase64: base64Data,
+        fileType: fileInput.type
+      };
+
+      // 3. Kirim Data ke Apps Script
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.result === "success") {
+          statusDiv.style.color = "green";
+          statusDiv.innerHTML = `✅ Jawaban Terkirim!<br>Nilai Kamu: <b>${nilaiAkhir} / 100</b>`;
+          document.getElementById('lkpdForm').reset();
+        } else {
+          throw new Error(data.error);
+        }
+      })
+      .catch(err => {
+        statusDiv.style.color = "red";
+        statusDiv.innerText = "❌ Gagal mengirim: " + err.message;
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
+    };
+
+    reader.readAsDataURL(fileInput);
+  });
+</script>
+
+</body>
+</html>
